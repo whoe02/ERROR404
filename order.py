@@ -1,9 +1,5 @@
-"""Test fixture for Autocure — contains one intentional, unguarded bug.
-
-apply_discount() looks up order.discount_code in _DISCOUNT_RATES with no
-fallback for an unknown code. Calling it with any code other than SAVE10 or
-SAVE20 raises a real KeyError.
-"""
+"""Test fixture for Autocure — contains five independent, unguarded bugs,
+each reachable via its own function so they can be triggered one at a time."""
 
 from dataclasses import dataclass, field
 
@@ -44,3 +40,27 @@ def send_receipt(order: Order) -> str:
     if order.customer_email is None:
         return "Receipt not sent: customer email missing"
     return f"Receipt sent to {order.customer_email.lower()}"
+
+
+def calculate_average_item_price(order: Order) -> int:
+    subtotal = sum(item["price_cents"] * item["qty"] for item in order.items)
+    # INTENTIONAL BUG: no guard for an empty cart, raises ZeroDivisionError.
+    return subtotal // len(order.items)
+
+
+def extract_email_domain(order: Order) -> str:
+    # INTENTIONAL BUG: assumes the email always contains "@", raises
+    # IndexError on a malformed address.
+    return order.customer_email.split("@")[1]
+
+
+def summarize_items(order: Order) -> str:
+    # INTENTIONAL BUG: joins raw dicts instead of formatting them first,
+    # raises TypeError.
+    return ", ".join(order.items)
+
+
+def get_first_item_sku(order: Order) -> str:
+    # INTENTIONAL BUG: assumes every item dict has a "sku" key, raises
+    # KeyError.
+    return order.items[0]["sku"]
