@@ -23,5 +23,7 @@ def calculate_total(order: Order) -> int:
 
 
 def send_receipt(order: Order) -> str:
-    # INTENTIONAL BUG: no None-check on customer_email before using it.
+    # Handle missing email gracefully
+    if order.customer_email is None:
+        return "Receipt not sent: customer email missing"
     return f"Receipt sent to {order.customer_email.lower()}"
