@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Checkout — ERROR404 Store{% endblock %}
+{% block content %}
+<h1>Checkout</h1>
+<div class="card">
+  <div class="product-row">
+    <div>{{ product.name }}<div class="price">${{ "%.2f"|format(product.price_cents / 100) }} each</div></div>
+  </div>
+  <form method="post" action="/checkout">
+    <input type="hidden" name="product_id" value="{{ product.id }}" />
+    <label for="qty">Quantity</label>
+    <input type="number" id="qty" name="qty" value="1" min="1" required />
+    <label for="discount_code">Discount code (optional)</label>
+    <input type="text" id="discount_code" name="discount_code" placeholder="e.g. SAVE10" />
+    <button type="submit">Place order</button>
+  </form>
+</div>
+{% endblock %}
