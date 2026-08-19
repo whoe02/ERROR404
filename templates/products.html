@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Products — ERROR404 Store{% endblock %}
+{% block content %}
+<h1>Products</h1>
+<div class="card">
+  {% for p in products %}
+  <div class="product-row">
+    <div>{{ p.name }}<div class="price">${{ "%.2f"|format(p.price_cents / 100) }}</div></div>
+    <form method="get" action="/checkout" style="margin:0;">
+      <input type="hidden" name="product_id" value="{{ p.id }}" />
+      <button type="submit" style="margin:0;">Buy</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

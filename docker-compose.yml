@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: error404
+      MYSQL_DATABASE: error404
+      MYSQL_USER: error404
+      MYSQL_PASSWORD: error404
+    ports:
+      - "3308:3306"
+    volumes:
+      - error404_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uerror404", "-perror404"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  error404_mysql_data:

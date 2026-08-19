@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }} — ERROR404 Store{% endblock %}
+{% block content %}
+<h1>Order #{{ order.id }}</h1>
+<div class="card">
+  <div class="stat"><span>Total</span><span class="v">${{ "%.2f"|format(order.total_cents / 100) }}</span></div>
+  <div class="stat"><span>SKU</span><span class="v">{{ sku }}</span></div>
+  <div class="stat"><span>Placed</span><span class="v">{{ order.created_at }}</span></div>
+</div>
+<p><a href="/orders/{{ order.id }}/export">Download text receipt</a> · <a href="/products">Continue shopping</a></p>
+{% endblock %}

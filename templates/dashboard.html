@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ERROR404 Store{% endblock %}
+{% block content %}
+<h1>Welcome{{ greeting }}</h1>
+<div class="card">
+  <div class="stat"><span>Orders placed</span><span class="v">{{ orders|length }}</span></div>
+  <div class="stat"><span>Average item price across your orders</span><span class="v">${{ "%.2f"|format(avg_item_price_cents / 100) }}</span></div>
+</div>
+<div class="card">
+  <h2 style="font-size:1rem;margin:0 0 12px;">Order history</h2>
+  {% if orders %}
+    {% for o in orders %}
+    <div class="product-row">
+      <div>Order #{{ o.id }}<div class="price">{{ o.created_at }}</div></div>
+      <div><a href="/orders/{{ o.id }}">${{ "%.2f"|format(o.total_cents / 100) }}</a></div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:var(--muted);">No orders yet — <a href="/products">browse products</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}
