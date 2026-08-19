@@ -1,0 +1,32 @@
+name: Auto Deploy on Merge
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy on self-hosted runner
+    runs-on: [self-hosted, linux]
+
+    env:
+      APP_DIR: /opt/repo/ERROR404
+      DEPLOY_BRANCH: staging
+      SERVICE_NAME: error404
+
+    steps:
+      - name: Deploy application
+        run: |
+          set -euo pipefail
+          echo "Deploy started at $(date -Is)"
+          echo "Runner host: $(hostname)"
+          echo "Commit: ${GITHUB_SHA}"
+          test -x "${APP_DIR}/deploy/deploy2.sh"
+          bash "${APP_DIR}/deploy/deploy2.sh"
+          echo "Deploy finished at $(date -Is)"
