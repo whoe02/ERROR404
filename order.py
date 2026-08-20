@@ -68,5 +68,5 @@ def get_first_item_sku(order: Order) -> str:
     if not order.items:
         raise ValueError("Order has no items")
     if "sku" not in order.items[0]:
-        raise ValueError("First item missing 'sku' key")
+        return None
     return order.items[0]["sku"]
