@@ -417,11 +417,8 @@ async def reports_page(request: Request):
     return templates.TemplateResponse(request, "reports.html", {"customer": customer})
 
 
-_SLOW_QUERY_SQL = (
-    "SELECT id, note FROM audit_log "
-    "WHERE id >= (SELECT FLOOR(RAND() * (SELECT MAX(id) FROM audit_log))) "
-    "ORDER BY id LIMIT 10"
-)
+_SLOW_QUERY_SQL = "SELECT id, note FROM audit_log ORDER BY RAND() LIMIT 10"
+_SLOW_QUERY_THRESHOLD_MS = 300
 
 
 @app.post("/reports/activity", response_class=HTMLResponse)
@@ -436,7 +433,15 @@ async def run_activity_report(request: Request):
             cur.execute(_SLOW_QUERY_SQL)
             rows = cur.fetchall()
         execution_ms = (time.perf_counter() - start) * 1000
-        autocure_report = await _report_slow_query(_SLOW_QUERY_SQL, execution_ms)
+
+        is_slow = execution_ms > _SLOW_QUERY_THRESHOLD_MS
+        workflow_id = None
+        autocure_error = None
+        if is_slow:
+            autocure_report = await _report_slow_query(_SLOW_QUERY_SQL, execution_ms)
+            workflow_id = autocure_report.get("workflow_id")
+            autocure_error = autocure_report.get("error")
+
         return templates.TemplateResponse(
             request,
             "slow_query.html",
@@ -445,8 +450,10 @@ async def run_activity_report(request: Request):
                 "sql": _SLOW_QUERY_SQL,
                 "execution_ms": round(execution_ms),
                 "rows": rows,
-                "workflow_id": autocure_report.get("workflow_id"),
-                "autocure_error": autocure_report.get("error"),
+                "is_slow": is_slow,
+                "threshold_ms": _SLOW_QUERY_THRESHOLD_MS,
+                "workflow_id": workflow_id,
+                "autocure_error": autocure_error,
             },
         )
     finally:

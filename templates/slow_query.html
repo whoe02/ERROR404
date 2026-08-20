@@ -5,11 +5,20 @@
 <div class="card">
   <div class="stat"><span>Query</span></div>
   <pre style="white-space:pre-wrap; background:#0e1117; padding:10px; border-radius:8px; font-size:0.8rem; color:var(--muted);">{{ sql }}</pre>
-  <div class="stat"><span>Execution time</span><span class="v" style="color:var(--err);">{{ execution_ms }} ms</span></div>
+  <div class="stat">
+    <span>Execution time</span>
+    <span class="v" style="{{ 'color:var(--err);' if is_slow else 'color:var(--ok);' }}">{{ execution_ms }} ms</span>
+  </div>
   <div class="stat"><span>Rows returned</span><span class="v">{{ rows|length }}</span></div>
 </div>
 
+{% if is_slow %}
 {% include "_tracker.html" %}
+{% else %}
+<div class="card">
+  <div class="flash ok">✅ No issue — query ran under the {{ threshold_ms }}ms threshold. Nothing reported to Autocure.</div>
+</div>
+{% endif %}
 
-<p><a href="/reports">Run again</a> · <a href="/dashboard">Back to dashboard</a></p>
+<p class="muted-link"><a href="/reports">Run again</a> · <a href="/dashboard">Back to dashboard</a></p>
 {% endblock %}
