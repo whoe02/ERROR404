@@ -417,7 +417,7 @@ async def reports_page(request: Request):
     return templates.TemplateResponse(request, "reports.html", {"customer": customer})
 
 
-_SLOW_QUERY_SQL = "SELECT id, note FROM audit_log ORDER BY RAND() LIMIT 10"
+_SLOW_QUERY_SQL = "SELECT id, note FROM audit_log TABLESAMPLE SYSTEM(1) LIMIT 10;"
 
 
 @app.post("/reports/activity", response_class=HTMLResponse)
