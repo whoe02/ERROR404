@@ -4,7 +4,13 @@
 <h1>Checkout</h1>
 <div class="card">
   <div class="product-row">
-    <div>{{ product.name }}<div class="price">${{ "%.2f"|format(product.price_cents / 100) }} each</div></div>
+    <div class="info">
+      <div class="icon">{{ "🖱️" if "Mouse" in product.name else "⌨️" if "Keyboard" in product.name else "🔌" }}</div>
+      <div>
+        <div class="name">{{ product.name }}</div>
+        <div class="price">${{ "%.2f"|format(product.price_cents / 100) }} each</div>
+      </div>
+    </div>
   </div>
   <form method="post" action="/checkout">
     <input type="hidden" name="product_id" value="{{ product.id }}" />

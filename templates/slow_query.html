@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Activity Report — ERROR404 Store{% endblock %}
+{% block content %}
+<h1>🐢 Activity Report</h1>
+<div class="card">
+  <div class="stat"><span>Query</span></div>
+  <pre style="white-space:pre-wrap; background:#0e1117; padding:10px; border-radius:8px; font-size:0.8rem; color:var(--muted);">{{ sql }}</pre>
+  <div class="stat"><span>Execution time</span><span class="v" style="color:var(--err);">{{ execution_ms }} ms</span></div>
+  <div class="stat"><span>Rows returned</span><span class="v">{{ rows|length }}</span></div>
+</div>
+
+{% include "_tracker.html" %}
+
+<p><a href="/reports">Run again</a> · <a href="/dashboard">Back to dashboard</a></p>
+{% endblock %}

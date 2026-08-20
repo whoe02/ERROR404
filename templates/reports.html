@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Reports — ERROR404 Store{% endblock %}
+{% block content %}
+<h1>Reports</h1>
+<div class="card">
+  <h2 style="font-size:1rem;margin:0 0 8px;">Recent Activity Report</h2>
+  <p style="color:var(--muted); font-size:0.85rem;">
+    Pulls 10 random entries from the 4,000,000-row activity log for a spot-check.
+    This runs a genuinely slow, unoptimized query (<code>ORDER BY RAND()</code> over the
+    whole table) and reports its real execution time to Autocure as a slow-query incident.
+  </p>
+  <form method="post" action="/reports/activity">
+    <button type="submit">Run report</button>
+  </form>
+</div>
+{% endblock %}

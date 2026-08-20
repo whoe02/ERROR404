@@ -5,7 +5,13 @@
 <div class="card">
   {% for p in products %}
   <div class="product-row">
-    <div>{{ p.name }}<div class="price">${{ "%.2f"|format(p.price_cents / 100) }}</div></div>
+    <div class="info">
+      <div class="icon">{{ "🖱️" if "Mouse" in p.name else "⌨️" if "Keyboard" in p.name else "🔌" }}</div>
+      <div>
+        <div class="name">{{ p.name }}</div>
+        <div class="price">${{ "%.2f"|format(p.price_cents / 100) }}</div>
+      </div>
+    </div>
     <form method="get" action="/checkout" style="margin:0;">
       <input type="hidden" name="product_id" value="{{ p.id }}" />
       <button type="submit" style="margin:0;">Buy</button>

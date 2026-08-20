@@ -2,6 +2,7 @@ import hashlib
 import os
 import secrets
 import subprocess
+import time
 import traceback
 import uuid
 
@@ -82,6 +83,32 @@ async def _report_to_autocure(exc: Exception, stack_trace: str, request_path: st
             headers={
                 "Authorization": f"Bearer {AUTOCURE_API_KEY}",
                 "Idempotency-Key": f"store-{uuid.uuid4()}",
+            },
+            json=payload,
+        )
+    if resp.status_code >= 400:
+        return {"error": f"Autocure event submission failed ({resp.status_code}): {resp.text}"}
+    return resp.json()
+
+
+async def _report_slow_query(sql: str, execution_ms: float) -> dict:
+    payload = {
+        "type": "slow_query",
+        "environment": "staging",
+        "data": {
+            "sql": sql,
+            "execution_ms": round(execution_ms),
+            "database": "mysql",
+            "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+            "commit_sha": _git("rev-parse", "HEAD"),
+        },
+    }
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(
+            f"{AUTOCURE_URL}/events",
+            headers={
+                "Authorization": f"Bearer {AUTOCURE_API_KEY}",
+                "Idempotency-Key": f"slowquery-{uuid.uuid4()}",
             },
             json=payload,
         )
@@ -378,6 +405,46 @@ async def dashboard(request: Request):
         )
     except Exception as exc:
         return await _error_page(request, customer, exc, "/dashboard")
+    finally:
+        conn.close()
+
+
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request):
+    customer = get_customer(request)
+    if not customer:
+        return RedirectResponse("/login", status_code=303)
+    return templates.TemplateResponse(request, "reports.html", {"customer": customer})
+
+
+_SLOW_QUERY_SQL = "SELECT id, note FROM audit_log ORDER BY RAND() LIMIT 10"
+
+
+@app.post("/reports/activity", response_class=HTMLResponse)
+async def run_activity_report(request: Request):
+    customer = get_customer(request)
+    if not customer:
+        return RedirectResponse("/login", status_code=303)
+    conn = db.get_connection()
+    try:
+        start = time.perf_counter()
+        with conn.cursor() as cur:
+            cur.execute(_SLOW_QUERY_SQL)
+            rows = cur.fetchall()
+        execution_ms = (time.perf_counter() - start) * 1000
+        autocure_report = await _report_slow_query(_SLOW_QUERY_SQL, execution_ms)
+        return templates.TemplateResponse(
+            request,
+            "slow_query.html",
+            {
+                "customer": customer,
+                "sql": _SLOW_QUERY_SQL,
+                "execution_ms": round(execution_ms),
+                "rows": rows,
+                "workflow_id": autocure_report.get("workflow_id"),
+                "autocure_error": autocure_report.get("error"),
+            },
+        )
     finally:
         conn.close()
 
