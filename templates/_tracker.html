@@ -1,30 +1,16 @@
 {% if workflow_id %}
-<div class="card" id="fix-card">
-  <h2 style="font-size:1rem;margin:0 0 14px;">🩹 Autocure is on it</h2>
-  <div class="status-line">
-    <div class="status-dot" id="status-dot"></div>
-    <div>
-      <div class="status-text" id="status-text">Queued…</div>
-      <div class="status-sub" id="status-sub"></div>
-    </div>
-  </div>
-</div>
 <div class="toast" id="toast" style="display:none;">
   <span id="toast-text"></span>
   <button type="button" id="toast-close" aria-label="Dismiss">✕</button>
 </div>
 {% elif autocure_error %}
-<div class="card"><div class="flash err">Could not reach Autocure: {{ autocure_error }}</div></div>
+<div class="toast error" style="display:flex;">
+  <span>Could not reach Autocure: {{ autocure_error }}</span>
+  <button type="button" onclick="this.parentElement.style.display='none';" aria-label="Dismiss">✕</button>
+</div>
 {% endif %}
 
 <style>
-  .status-line { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); flex: none; animation: pulse 1.4s infinite; }
-  .status-dot.done { background: var(--ok); animation: none; }
-  .status-dot.failed { background: var(--err); animation: none; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-  .status-text { font-size: 0.95rem; font-weight: 600; }
-  .status-sub { color: var(--muted); font-size: 0.8rem; }
   .toast {
     position: fixed; top: 0; left: 0; right: 0; z-index: 1000; width: 100%;
     display: flex; align-items: center; justify-content: center; gap: 14px;
@@ -32,9 +18,10 @@
     border-bottom: 1px solid var(--border); background: var(--bg);
     box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   }
-  .toast.approval { background: var(--warn); color: #1a1300; border-color: var(--warn); }
-  .toast.commit { background: var(--ok); color: #04220f; border-color: var(--ok); }
-  .toast.error { background: var(--err); color: #2a0505; border-color: var(--err); }
+  .toast.stage { background: var(--accent); color: #fff; }
+  .toast.approval { background: var(--warn); color: #1a1300; }
+  .toast.commit { background: var(--ok); color: #04220f; }
+  .toast.error { background: var(--err); color: #2a0505; }
   .toast button {
     background: none; border: none; color: inherit; cursor: pointer;
     font-size: 1rem; opacity: 0.7; line-height: 1; padding: 2px;
@@ -45,17 +32,15 @@
 
 {% if workflow_id %}
 <script>
-const STATUS_LABELS = {
-  queued: "Queued", running: "Running",
-  awaiting_approval: "Awaiting human approval in Telegram", awaiting_deploy: "Awaiting deployment",
-  completed: "Fix committed", failed: "Workflow failed", cancelled: "Workflow cancelled",
+const STAGE_LABELS = {
+  incident: "Opening incident", planner: "Planning the fix", planning: "Planning the fix",
+  knowledge: "Searching prior knowledge", context: "Building source context",
+  rootcause: "Running root-cause analysis", root_cause: "Running root-cause analysis",
+  codegen: "Generating the patch", reviewer: "Reviewing the patch", review: "Reviewing the patch",
+  security: "Running security scan", performance: "Running performance analysis",
+  deployment: "Preparing deployment",
 };
 function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString() : ""; }
-function setHeader(text, sub, dotClass) {
-  document.getElementById("status-text").textContent = text;
-  document.getElementById("status-sub").textContent = sub || "";
-  document.getElementById("status-dot").className = "status-dot" + (dotClass ? " " + dotClass : "");
-}
 let lastToastKey = null;
 function showToast(key, text, cls) {
   if (key === lastToastKey) return;
@@ -75,18 +60,15 @@ async function poll() {
     if (!res.ok) { showToast("http-error", `Status check failed (HTTP ${res.status})`, "error"); return; }
     const data = await res.json();
     if (data.status === "awaiting_approval") {
-      setHeader(STATUS_LABELS.awaiting_approval, "", "");
       showToast("awaiting_approval", "⚠️ Fix ready — go approve the card in the connected Telegram group.", "approval");
     } else if (data.status === "completed") {
-      setHeader(STATUS_LABELS.completed, `Finished at ${fmtTime(data.completed_at)}`, "done");
       showToast("completed", "✅ Fix committed to staging.", "commit");
       clearInterval(pollTimer);
     } else if (data.status === "failed" || data.status === "cancelled") {
-      setHeader(STATUS_LABELS[data.status] || data.status, "", "failed");
       showToast(data.status, "❌ Workflow " + data.status + ".", "error");
       clearInterval(pollTimer);
-    } else {
-      setHeader(STATUS_LABELS[data.status] || data.status, data.current_stage ? `Stage: ${data.current_stage}` : "", "");
+    } else if (data.current_stage && STAGE_LABELS[data.current_stage]) {
+      showToast("stage:" + data.current_stage, "🩹 " + STAGE_LABELS[data.current_stage] + "…", "stage");
     }
   } catch (e) {
     showToast("fetch-error", "Status check error: " + e.message, "error");
