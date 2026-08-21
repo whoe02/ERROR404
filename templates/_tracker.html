@@ -60,7 +60,7 @@ function addEntry(text, cls) {
   t.textContent = new Date().toLocaleTimeString();
   li.appendChild(t);
   li.appendChild(document.createTextNode(text));
-  document.getElementById("timeline").appendChild(li);
+  document.getElementById("timeline").prepend(li);
 }
 function setHeader(text, sub, dotClass) {
   document.getElementById("status-text").textContent = text;
