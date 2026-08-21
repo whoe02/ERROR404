@@ -7,6 +7,21 @@
 // $row['rate'] on it raises a real PHP warning — the same "array offset
 // on null" class of bug already used elsewhere in this fixture.
 
+function gitInfo(string $repoDir): array {
+    $headPath = $repoDir . '/.git/HEAD';
+    if (!is_file($headPath)) {
+        return ['branch' => 'staging', 'commit_sha' => ''];
+    }
+    $head = trim(file_get_contents($headPath));
+    if (str_starts_with($head, 'ref: ')) {
+        $ref = substr($head, 5);
+        $refPath = $repoDir . '/.git/' . $ref;
+        $commitSha = is_file($refPath) ? trim(file_get_contents($refPath)) : '';
+        return ['branch' => basename($ref), 'commit_sha' => $commitSha];
+    }
+    return ['branch' => 'HEAD', 'commit_sha' => $head];
+}
+
 function loadEnv(string $path): array {
     $env = [];
     foreach (file($path) as $line) {
@@ -74,8 +89,9 @@ $db = new mysqli(
     (int) $env['DB_PORT']
 );
 
-$branch = trim((string) shell_exec('git -C ' . escapeshellarg(__DIR__) . ' rev-parse --abbrev-ref HEAD'));
-$commitSha = trim((string) shell_exec('git -C ' . escapeshellarg(__DIR__) . ' rev-parse HEAD'));
+$git = gitInfo(__DIR__);
+$branch = $git['branch'];
+$commitSha = $git['commit_sha'];
 $discountCode = $argv[1] ?? 'BOGUSCODE';
 
 try {
