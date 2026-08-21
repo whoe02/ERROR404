@@ -428,16 +428,7 @@ async def reports_page(request: Request):
     return templates.TemplateResponse(request, "reports.html", {"customer": customer})
 
 
-_SLOW_QUERY_SQL = (
-    "SELECT t1.id, t1.note "
-    "FROM audit_log t1 "
-    "JOIN ( "
-    "  SELECT ROUND(RAND() * (SELECT MAX(id) FROM audit_log)) AS start_id "
-    ") t2 "
-    "ON t1.id >= t2.start_id "
-    "ORDER BY t1.id "
-    "LIMIT 10;"
-)
+_SLOW_QUERY_SQL = "SELECT id, note FROM audit_log ORDER BY RAND() LIMIT 10"
 _SLOW_QUERY_THRESHOLD_MS = 300
 
 
