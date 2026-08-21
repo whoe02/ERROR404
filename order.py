@@ -45,8 +45,6 @@ def send_receipt(order: Order) -> str:
 def calculate_average_item_price(order: Order) -> int:
     subtotal = sum(item["price_cents"] * item["qty"] for item in order.items)
     # INTENTIONAL BUG: no guard for an empty cart, raises ZeroDivisionError.
-    if len(order.items) == 0:
-        return 0
     return subtotal // len(order.items)
 
 
@@ -57,14 +55,12 @@ def extract_email_domain(order: Order) -> str:
 
 
 def summarize_items(order: Order) -> str:
-    return ", ".join(item.get("name", "Unknown Item") for item in order.items)
+    # INTENTIONAL BUG: item dicts only have price_cents/qty, no "name" key,
+    # raises KeyError.
+    return ", ".join(item["name"] for item in order.items)
 
 
 def get_first_item_sku(order: Order) -> str:
     # INTENTIONAL BUG: assumes every item dict has a "sku" key, raises
     # KeyError.
-    if not order.items:
-        raise ValueError("Order has no items")
-    if "sku" not in order.items[0]:
-        return None
     return order.items[0]["sku"]
