@@ -371,7 +371,11 @@ async def export_order(request: Request, order_id: int):
     except HTTPException:
         raise
     except Exception as exc:
-        return await _error_page(request, customer, exc, f"/orders/{order_id}/export")
+        request_path = f"/orders/{order_id}/export"
+        stack_trace = traceback.format_exc()
+        db.log_event("BUG", request_path, str(exc), stack_trace)
+        await _report_to_autocure(exc, stack_trace, request_path)
+        return PlainTextResponse(str(exc), status_code=500)
     finally:
         conn.close()
 
