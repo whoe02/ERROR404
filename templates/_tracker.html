@@ -78,9 +78,10 @@ async function poll() {
       setHeader(STATUS_LABELS.awaiting_approval, "Go approve the fix card in the connected Telegram group.", "");
       addEntry("Fix ready — Telegram approval card sent", "approval");
     } else if (data.status === "completed") {
-      setHeader(STATUS_LABELS.completed, `Finished at ${fmtTime(data.completed_at)}`, "done");
+      setHeader(STATUS_LABELS.completed, `Finished at ${fmtTime(data.completed_at)} — refreshing…`, "done");
       addEntry("Fix committed to staging ✅", "commit");
       clearInterval(pollTimer);
+      setTimeout(() => location.reload(), 5000);
     } else if (data.status === "failed" || data.status === "cancelled") {
       setHeader(STATUS_LABELS[data.status] || data.status, "", "failed");
       addEntry("Workflow " + data.status, "error");
