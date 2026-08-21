@@ -19,6 +19,7 @@ jobs:
       APP_DIR: /opt/repo/ERROR404
       DEPLOY_BRANCH: staging
       SERVICE_NAME: error404
+      DEPLOY_SCRIPT: /opt/actions-runner-error404/deploy.sh
 
     steps:
       - name: Deploy application
@@ -27,6 +28,7 @@ jobs:
           echo "Deploy started at $(date -Is)"
           echo "Runner host: $(hostname)"
           echo "Commit: ${GITHUB_SHA}"
-          test -x "${APP_DIR}/deploy/deploy2.sh"
-          bash "${APP_DIR}/deploy/deploy2.sh"
+          test -f "${DEPLOY_SCRIPT}"
+          chmod +x "${DEPLOY_SCRIPT}"
+          bash "${DEPLOY_SCRIPT}"
           echo "Deploy finished at $(date -Is)"
