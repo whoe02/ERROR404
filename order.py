@@ -57,9 +57,8 @@ def extract_email_domain(order: Order) -> str:
 
 
 def summarize_items(order: Order) -> str:
-    # INTENTIONAL BUG: item dicts only have price_cents/qty, no "name" key,
-    # raises KeyError.
-    return ", ".join(item["name"] for item in order.items)
+    # FIX: Use .get() with a fallback since item dicts only contain price_cents/qty.
+    return ", ".join(item.get("name", f"Item {i+1}") for i, item in enumerate(order.items))
 
 
 def get_first_item_sku(order: Order) -> str:
