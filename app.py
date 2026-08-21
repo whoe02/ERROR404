@@ -33,6 +33,16 @@ app = FastAPI(title="ERROR404 Store")
 templates = Jinja2Templates(directory=os.path.join(REPO_DIR, "templates"))
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> PlainTextResponse:
+    """Catch anything that escapes a route's own try/except (e.g. a raw SQL
+    error) and record it to app_log, so the real error is visible via the DB
+    regardless of which terminal/process is running the server."""
+    tb = traceback.format_exc()
+    db.log_event("ERROR", request.url.path, str(exc), tb)
+    return PlainTextResponse(f"Internal Server Error: {exc}", status_code=500)
+
+
 def _git(*args: str) -> str:
     result = subprocess.run(
         ["git", "-C", REPO_DIR, *args], capture_output=True, text=True, check=True
@@ -121,6 +131,7 @@ async def _error_page(
     request: Request, customer: dict | None, exc: Exception, request_path: str
 ) -> HTMLResponse:
     stack_trace = traceback.format_exc()
+    db.log_event("BUG", request_path, str(exc), stack_trace)
     autocure_report = await _report_to_autocure(exc, stack_trace, request_path)
     return templates.TemplateResponse(
         request,
