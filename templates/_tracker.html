@@ -26,19 +26,19 @@
   .status-text { font-size: 0.95rem; font-weight: 600; }
   .status-sub { color: var(--muted); font-size: 0.8rem; }
   .toast {
-    position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 360px;
-    display: flex; align-items: center; gap: 12px;
-    border-radius: 8px; padding: 12px 14px; font-size: 0.88rem;
-    border: 1px solid var(--border); background: var(--bg);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000; width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    padding: 14px 20px; font-size: 0.92rem; font-weight: 600;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   }
-  .toast.approval { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, var(--bg)); }
-  .toast.commit { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 15%, var(--bg)); }
-  .toast.error { border-color: var(--err); background: color-mix(in srgb, var(--err) 15%, var(--bg)); }
-  .toast span { flex: 1; }
+  .toast.approval { background: var(--warn); color: #1a1300; border-color: var(--warn); }
+  .toast.commit { background: var(--ok); color: #04220f; border-color: var(--ok); }
+  .toast.error { background: var(--err); color: #2a0505; border-color: var(--err); }
   .toast button {
     background: none; border: none; color: inherit; cursor: pointer;
-    font-size: 0.9rem; opacity: 0.6; line-height: 1; padding: 2px;
+    font-size: 1rem; opacity: 0.7; line-height: 1; padding: 2px;
+    position: absolute; right: 20px;
   }
   .toast button:hover { opacity: 1; }
 </style>
