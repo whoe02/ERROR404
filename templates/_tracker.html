@@ -8,91 +8,71 @@
       <div class="status-sub" id="status-sub"></div>
     </div>
   </div>
-  <ul class="timeline" id="timeline"></ul>
+  <div class="banner" id="banner" style="display:none;"></div>
 </div>
 {% elif autocure_error %}
 <div class="card"><div class="flash err">Could not reach Autocure: {{ autocure_error }}</div></div>
 {% endif %}
 
 <style>
-  .status-line { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .status-line { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
   .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); flex: none; animation: pulse 1.4s infinite; }
   .status-dot.done { background: var(--ok); animation: none; }
   .status-dot.failed { background: var(--err); animation: none; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
   .status-text { font-size: 0.95rem; font-weight: 600; }
   .status-sub { color: var(--muted); font-size: 0.8rem; }
-  ul.timeline { list-style: none; margin: 0; padding: 0; }
-  ul.timeline li { position: relative; padding: 0 0 18px 26px; border-left: 2px solid var(--border); font-size: 0.88rem; }
-  ul.timeline li:last-child { border-left-color: transparent; padding-bottom: 0; }
-  ul.timeline li::before { content: ""; position: absolute; left: -6px; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
-  ul.timeline li .t { color: var(--muted); font-size: 0.75rem; margin-right: 8px; font-family: ui-monospace, monospace; }
-  ul.timeline li.approval::before { background: var(--warn); }
-  ul.timeline li.commit::before { background: var(--ok); }
-  ul.timeline li.error::before { background: var(--err); }
+  .banner { border-radius: 8px; padding: 10px 14px; font-size: 0.88rem; border: 1px solid var(--border); }
+  .banner.approval { background: color-mix(in srgb, var(--warn) 15%, transparent); border-color: var(--warn); }
+  .banner.commit { background: color-mix(in srgb, var(--ok) 15%, transparent); border-color: var(--ok); }
+  .banner.error { background: color-mix(in srgb, var(--err) 15%, transparent); border-color: var(--err); }
 </style>
 
 {% if workflow_id %}
 <script>
-const STAGE_LABELS = {
-  incident: "Opening incident", planner: "Planning the fix", planning: "Planning the fix",
-  knowledge: "Searching prior knowledge", context: "Building source context",
-  rootcause: "Running root-cause analysis", root_cause: "Running root-cause analysis",
-  codegen: "Generating the patch", reviewer: "Reviewing the patch", review: "Reviewing the patch",
-  security: "Running security scan", performance: "Running performance analysis",
-  deployment: "Preparing deployment",
-};
 const STATUS_LABELS = {
   queued: "Queued", running: "Running",
   awaiting_approval: "Awaiting human approval in Telegram", awaiting_deploy: "Awaiting deployment",
   completed: "Fix committed", failed: "Workflow failed", cancelled: "Workflow cancelled",
 };
-let seen = new Set();
 function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString() : ""; }
-function addEntry(text, cls) {
-  const key = cls + ":" + text;
-  if (seen.has(key)) return;
-  seen.add(key);
-  const li = document.createElement("li");
-  if (cls) li.className = cls;
-  const t = document.createElement("span");
-  t.className = "t";
-  t.textContent = new Date().toLocaleTimeString();
-  li.appendChild(t);
-  li.appendChild(document.createTextNode(text));
-  document.getElementById("timeline").prepend(li);
-}
 function setHeader(text, sub, dotClass) {
   document.getElementById("status-text").textContent = text;
   document.getElementById("status-sub").textContent = sub || "";
   document.getElementById("status-dot").className = "status-dot" + (dotClass ? " " + dotClass : "");
 }
+function setBanner(text, cls) {
+  const el = document.getElementById("banner");
+  if (!text) { el.style.display = "none"; return; }
+  el.textContent = text;
+  el.className = "banner" + (cls ? " " + cls : "");
+  el.style.display = "block";
+}
 let pollTimer = null;
 async function poll() {
   try {
     const res = await fetch("/api/workflow-status/{{ workflow_id }}");
-    if (!res.ok) { addEntry(`Status check failed (HTTP ${res.status})`, "error"); return; }
+    if (!res.ok) { setBanner(`Status check failed (HTTP ${res.status})`, "error"); return; }
     const data = await res.json();
-    if (data.current_stage && STAGE_LABELS[data.current_stage]) addEntry(STAGE_LABELS[data.current_stage], "");
     if (data.status === "awaiting_approval") {
-      setHeader(STATUS_LABELS.awaiting_approval, "Go approve the fix card in the connected Telegram group.", "");
-      addEntry("Fix ready — Telegram approval card sent", "approval");
+      setHeader(STATUS_LABELS.awaiting_approval, "", "");
+      setBanner("⚠️ Fix ready — go approve the card in the connected Telegram group.", "approval");
     } else if (data.status === "completed") {
       setHeader(STATUS_LABELS.completed, `Finished at ${fmtTime(data.completed_at)}`, "done");
-      addEntry("Fix committed to staging ✅", "commit");
+      setBanner("✅ Fix committed to staging.", "commit");
       clearInterval(pollTimer);
     } else if (data.status === "failed" || data.status === "cancelled") {
       setHeader(STATUS_LABELS[data.status] || data.status, "", "failed");
-      addEntry("Workflow " + data.status, "error");
+      setBanner("❌ Workflow " + data.status + ".", "error");
       clearInterval(pollTimer);
     } else {
       setHeader(STATUS_LABELS[data.status] || data.status, data.current_stage ? `Stage: ${data.current_stage}` : "", "");
+      setBanner(null);
     }
   } catch (e) {
-    addEntry("Status check error: " + e.message, "error");
+    setBanner("Status check error: " + e.message, "error");
   }
 }
-addEntry("Reported to Autocure", "");
 poll();
 pollTimer = setInterval(poll, 4000);
 </script>
