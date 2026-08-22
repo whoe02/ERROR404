@@ -13,7 +13,9 @@
 </div>
 
 {% if is_slow %}
-{% include "_tracker.html" %}
+<div class="card">
+  <div class="flash err">⚠️ Slow query detected — {{ execution_ms }} ms exceeds the {{ threshold_ms }}ms threshold.</div>
+</div>
 {% else %}
 <div class="card">
   <div class="flash ok">✅ No issue — query ran under the {{ threshold_ms }}ms threshold. Nothing reported to Autocure.</div>
