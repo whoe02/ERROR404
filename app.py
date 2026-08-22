@@ -101,32 +101,6 @@ async def _report_to_autocure(exc: Exception, stack_trace: str, request_path: st
     return resp.json()
 
 
-async def _report_slow_query(sql: str, execution_ms: float) -> dict:
-    payload = {
-        "type": "slow_query",
-        "environment": "staging",
-        "data": {
-            "sql": sql,
-            "execution_ms": round(execution_ms),
-            "database": "mysql",
-            "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
-            "commit_sha": _git("rev-parse", "HEAD"),
-        },
-    }
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            f"{AUTOCURE_URL}/events",
-            headers={
-                "Authorization": f"Bearer {AUTOCURE_API_KEY}",
-                "Idempotency-Key": f"slowquery-{uuid.uuid4()}",
-            },
-            json=payload,
-        )
-    if resp.status_code >= 400:
-        return {"error": f"Autocure event submission failed ({resp.status_code}): {resp.text}"}
-    return resp.json()
-
-
 async def _error_page(
     request: Request, customer: dict | None, exc: Exception, request_path: str
 ) -> HTMLResponse:
@@ -450,12 +424,6 @@ async def run_activity_report(request: Request):
         execution_ms = (time.perf_counter() - start) * 1000
 
         is_slow = execution_ms > _SLOW_QUERY_THRESHOLD_MS
-        workflow_id = None
-        autocure_error = None
-        if is_slow:
-            autocure_report = await _report_slow_query(_SLOW_QUERY_SQL, execution_ms)
-            workflow_id = autocure_report.get("workflow_id")
-            autocure_error = autocure_report.get("error")
 
         return templates.TemplateResponse(
             request,
@@ -467,21 +435,7 @@ async def run_activity_report(request: Request):
                 "rows": rows,
                 "is_slow": is_slow,
                 "threshold_ms": _SLOW_QUERY_THRESHOLD_MS,
-                "workflow_id": workflow_id,
-                "autocure_error": autocure_error,
             },
         )
     finally:
         conn.close()
-
-
-@app.get("/api/workflow-status/{workflow_id}")
-async def workflow_status(workflow_id: str) -> dict:
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{AUTOCURE_URL}/workflows/{workflow_id}",
-            headers={"Authorization": f"Bearer {AUTOCURE_API_KEY}"},
-        )
-    if resp.status_code >= 400:
-        raise HTTPException(status_code=resp.status_code, detail=resp.text)
-    return resp.json()
