@@ -13,10 +13,7 @@
 </div>
 
 {% if is_slow %}
-<div class="toast error" style="display:flex;">
-  <span>⚠️ Slow query detected — {{ execution_ms }} ms exceeds the {{ threshold_ms }}ms threshold.</span>
-  <button type="button" onclick="this.parentElement.style.display='none';" aria-label="Dismiss">✕</button>
-</div>
+{% include "_tracker.html" %}
 {% else %}
 <div class="card">
   <div class="flash ok">✅ No issue — query ran under the {{ threshold_ms }}ms threshold. Nothing reported to Autocure.</div>

@@ -1,6 +1,80 @@
-{% if autocure_error %}
+{% if workflow_id %}
+<div class="toast" id="toast" style="display:none;">
+  <span id="toast-text"></span>
+  <button type="button" id="toast-close" aria-label="Dismiss">✕</button>
+</div>
+{% elif autocure_error %}
 <div class="toast error" style="display:flex;">
   <span>Could not reach Autocure: {{ autocure_error }}</span>
   <button type="button" onclick="this.parentElement.style.display='none';" aria-label="Dismiss">✕</button>
 </div>
+{% endif %}
+
+<style>
+  .toast {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000; width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    padding: 14px 20px; font-size: 0.92rem; font-weight: 600;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+  .toast.stage { background: var(--accent); color: #fff; }
+  .toast.approval { background: var(--warn); color: #1a1300; }
+  .toast.commit { background: var(--ok); color: #04220f; }
+  .toast.error { background: var(--err); color: #2a0505; }
+  .toast button {
+    background: none; border: none; color: inherit; cursor: pointer;
+    font-size: 1rem; opacity: 0.7; line-height: 1; padding: 2px;
+    position: absolute; right: 20px;
+  }
+  .toast button:hover { opacity: 1; }
+</style>
+
+{% if workflow_id %}
+<script>
+const STAGE_LABELS = {
+  incident: "Opening incident", planner: "Planning the fix", planning: "Planning the fix",
+  knowledge: "Searching prior knowledge", context: "Building source context",
+  rootcause: "Running root-cause analysis", root_cause: "Running root-cause analysis",
+  codegen: "Generating the patch", reviewer: "Reviewing the patch", review: "Reviewing the patch",
+  security: "Running security scan", performance: "Running performance analysis",
+  deployment: "Preparing deployment",
+};
+function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString() : ""; }
+let lastToastKey = null;
+function showToast(key, text, cls) {
+  if (key === lastToastKey) return;
+  lastToastKey = key;
+  const el = document.getElementById("toast");
+  document.getElementById("toast-text").textContent = text;
+  el.className = "toast" + (cls ? " " + cls : "");
+  el.style.display = "flex";
+}
+document.getElementById("toast-close")?.addEventListener("click", () => {
+  document.getElementById("toast").style.display = "none";
+});
+let pollTimer = null;
+async function poll() {
+  try {
+    const res = await fetch("/api/workflow-status/{{ workflow_id }}");
+    if (!res.ok) { showToast("http-error", `Status check failed (HTTP ${res.status})`, "error"); return; }
+    const data = await res.json();
+    if (data.status === "awaiting_approval") {
+      showToast("awaiting_approval", "⚠️ Fix ready — go approve the card in the connected Telegram group.", "approval");
+    } else if (data.status === "completed") {
+      showToast("completed", "✅ Fix committed to staging.", "commit");
+      clearInterval(pollTimer);
+    } else if (data.status === "failed" || data.status === "cancelled") {
+      showToast(data.status, "❌ Workflow " + data.status + ".", "error");
+      clearInterval(pollTimer);
+    } else if (data.current_stage && STAGE_LABELS[data.current_stage]) {
+      showToast("stage:" + data.current_stage, "🩹 " + STAGE_LABELS[data.current_stage] + "…", "stage");
+    }
+  } catch (e) {
+    showToast("fetch-error", "Status check error: " + e.message, "error");
+  }
+}
+poll();
+pollTimer = setInterval(poll, 4000);
+</script>
 {% endif %}
