@@ -55,8 +55,9 @@ def extract_email_domain(order: Order) -> str:
 
 
 def summarize_items(order: Order) -> str:
-    # Fixed: safely retrieve "name" key, defaulting to empty string if missing.
-    return ", ".join(item.get("name", "") for item in order.items)
+    # INTENTIONAL BUG: item dicts only have price_cents/qty, no "name" key,
+    # raises KeyError.
+    return ", ".join(item["name"] for item in order.items)
 
 
 def get_first_item_sku(order: Order) -> str:
