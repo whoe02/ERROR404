@@ -3,7 +3,7 @@
 {% block content %}
 <h1>💥 Something broke</h1>
 <div class="card">
-  <div class="flash err">{{ error }}</div>
+  <script>alert({{ error|tojson }});</script>
   <p style="color:var(--muted); font-size:0.85rem;">This really crashed the server — it wasn't faked for the demo.</p>
 </div>
 
