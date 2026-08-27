@@ -4,7 +4,7 @@
 {% block content %}
 <h1 style="text-align:center;">Create an account</h1>
 <div class="card">
-  {% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+  {% if error %}<script>alert({{ error|tojson }});</script>{% endif %}
   <form method="post" action="/signup">
     <label for="name">Name</label>
     <input type="text" id="name" name="name" required />
