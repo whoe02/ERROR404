@@ -44,7 +44,8 @@ def send_receipt(order: Order) -> str:
 
 def calculate_average_item_price(order: Order) -> int:
     subtotal = sum(item["price_cents"] * item["qty"] for item in order.items)
-    # INTENTIONAL BUG: no guard for an empty cart, raises ZeroDivisionError.
+    if not order.items:
+        return 0
     return subtotal // len(order.items)
 
 
