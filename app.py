@@ -1,5 +1,4 @@
 import hashlib
-import json
 import os
 import secrets
 import subprocess
@@ -128,14 +127,22 @@ async def _report_slow_query(sql: str, execution_ms: float) -> dict:
     return resp.json()
 
 
-async def _error_alert(exc: Exception, request_path: str) -> HTMLResponse:
-    """Report the bug to Autocure exactly as before, but surface it to the
-    browser as a single alert() instead of navigating to a dedicated error
-    page — the reporting stays silent, only the UX changes."""
+async def _error_page(
+    request: Request, customer: dict | None, exc: Exception, request_path: str
+) -> HTMLResponse:
     stack_trace = traceback.format_exc()
     db.log_event("BUG", request_path, str(exc), stack_trace)
-    await _report_to_autocure(exc, stack_trace, request_path)
-    return HTMLResponse(f"<script>alert({json.dumps(str(exc))});history.back();</script>")
+    autocure_report = await _report_to_autocure(exc, stack_trace, request_path)
+    return templates.TemplateResponse(
+        request,
+        "error.html",
+        {
+            "customer": customer,
+            "error": str(exc),
+            "workflow_id": autocure_report.get("workflow_id"),
+            "autocure_error": autocure_report.get("error"),
+        },
+    )
 
 
 @app.get("/")
@@ -301,7 +308,7 @@ async def checkout_submit(
             )
         return RedirectResponse(f"/orders/{order_id}", status_code=303)
     except Exception as exc:
-        return await _error_alert(exc, "/checkout")
+        return await _error_page(request, customer, exc, "/checkout")
     finally:
         conn.close()
 
@@ -333,7 +340,7 @@ async def view_order(request: Request, order_id: int):
     except HTTPException:
         raise
     except Exception as exc:
-        return await _error_alert(exc, f"/orders/{order_id}")
+        return await _error_page(request, customer, exc, f"/orders/{order_id}")
     finally:
         conn.close()
 
@@ -412,7 +419,7 @@ async def dashboard(request: Request):
             },
         )
     except Exception as exc:
-        return await _error_alert(exc, "/dashboard")
+        return await _error_page(request, customer, exc, "/dashboard")
     finally:
         conn.close()
 
