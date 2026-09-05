@@ -56,7 +56,7 @@ def extract_email_domain(order: Order) -> str:
 
 def summarize_items(order: Order) -> str:
     # Safely extract item names, defaulting to empty string if missing.
-    return ", ".join(item["name"] for item in order.items)
+    return ", ".join(item.get("name", "") for item in order.items)
 
 
 def get_first_item_sku(order: Order) -> str:
